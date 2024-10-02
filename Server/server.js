@@ -68,6 +68,10 @@ const Team = mongoose.model('Team', teamSchema);
 const userSchema = new mongoose.Schema({
     membershipId: String,
     phoneNumber: String,
+    isRegistered:{
+        type:Boolean,
+        default:false
+    }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -119,10 +123,10 @@ app.post('/api/login', async (req, res) => {
     const { csiId, phone } = req.body;
 
     try {
-        const user = await User.findOne({ membershipId:csiId, phoneNumber:phone });
+        const user = await User.findOne({ membershipId:csiId, phoneNumber:phone, isRegistered:false });
 
         if (!user) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+            return res.status(401).json({ error: 'Invalid credentials or you might have already registered!' });
         }
 
         res.json({ isMember: true, data:user });
@@ -193,7 +197,7 @@ app.post('/api/payment', async (req, res) => {
 
 // Payment verification route
 app.post('/api/payment/verify', async (req, res) => {
-    const { orderId, paymentId, signature, teamId } = req.body;
+    const { orderId, paymentId, signature, teamId, memberId } = req.body;
 
     try {
         const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
@@ -207,6 +211,23 @@ app.post('/api/payment/verify', async (req, res) => {
                 signature: signature,
                 status: 'paid'
             });
+            console.log("User Registered!");
+
+            // const result=await User.updateOne(
+            //     { membershipId: memberId },          // Filter by memberId
+            //     { $set: { isRegistered: true } } // Update isRegistered to true
+            //   );
+            console.log(memberId);
+            const updatedUser = await User.findOneAndUpdate(
+                { membershipId:memberId },          // Filter by memberId
+                { $set: { isRegistered: true } },// Update isRegistered to true
+                { new: true }                    // Return the updated document
+            );
+            
+            console.log(updatedUser);
+            // await User.findByIdAndUpdate( memberId , {isRegistered:true},{new:true});
+
+
 
             // Mark the team as having verified payment
             await Team.findByIdAndUpdate(teamId, { isVerifiedPayment: true }, { new: true });

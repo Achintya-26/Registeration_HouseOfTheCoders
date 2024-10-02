@@ -10,9 +10,11 @@ import { useNavigate } from 'react-router-dom';
 
 const MAX_TEAM_MEMBERS = 3;
 
-export default function TeamRegistrationForm({ isMember }) {
+export default function TeamRegistrationForm({ isMember, memberId }) {
 
     const navigate = useNavigate();
+
+    // console.log("id of the csi memeber  : ", memberId);
 
     const price = isMember ? 300 : 400;
     const userType = isMember ? "member" : "not-member"
@@ -32,7 +34,8 @@ export default function TeamRegistrationForm({ isMember }) {
     });
     const handlePayment = async (orderId, teamId) => {
         const options = {
-            key: "rzp_test_BTr7b0RWERDfcg",
+            key: "rzp_live_AByOI63MLLdq9I",
+            // key: "rzp_test_BTr7b0RWERDfcg",
             amount: price * 100,
             currency: "INR",
             name: "House of Coders",
@@ -50,12 +53,15 @@ export default function TeamRegistrationForm({ isMember }) {
                             orderId: response.razorpay_order_id,
                             paymentId: response.razorpay_payment_id,
                             signature: response.razorpay_signature,
-                            teamId: teamId
+                            teamId: teamId,
+                            memberId: memberId,
                         }),
                     });
-    
+                    // console.log(isMember);
                     const result = await verifyResponse.json();
-    
+
+                    // console.log("verified result", result);
+
                     if (result.success) {
                         toast.success("Payment Successful! User verified.");
                         window.location.href = "/thank-you.html";
@@ -85,9 +91,9 @@ export default function TeamRegistrationForm({ isMember }) {
                 }
             }
         };
-    
+
         const rzp = new window.Razorpay(options);
-    
+
         rzp.on('payment.failed', async function (response) {
             try {
                 await fetch(`http://192.168.1.9:5000/api/user/delete/${teamId}`, { method: 'DELETE' });
@@ -95,11 +101,11 @@ export default function TeamRegistrationForm({ isMember }) {
                 console.error("Error deleting user:", error);
             }
         });
-    
+
         rzp.open();
     };
-    
-    
+
+
 
 
     const onSubmit = async (data) => {
@@ -111,14 +117,14 @@ export default function TeamRegistrationForm({ isMember }) {
                 },
                 body: JSON.stringify(data),
             });
-    
+
             if (!response.ok) {
                 throw new Error('Failed to submit the form');
             }
-    
+
             const responseData = await response.json();
             const teamId = responseData.teamId;
-    
+
             const paymentResponse = await fetch('http://192.168.1.9:5000/api/payment', {
                 method: 'POST',
                 headers: {
@@ -131,14 +137,14 @@ export default function TeamRegistrationForm({ isMember }) {
                     teamId: teamId
                 }),
             });
-    
+
             const paymentData = await paymentResponse.json();
             await handlePayment(paymentData.orderId, teamId);
         } catch (error) {
             console.error('Error submitting the form:', error);
         }
     };
-    
+
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#131619] p-4 mt-8">
@@ -207,7 +213,7 @@ export default function TeamRegistrationForm({ isMember }) {
                         </div>
 
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold text-xl text-red-400">Team Members</h3>
+                            <h3 className=" font-semibold text-xl text-red-400">Team Members</h3>
                             {fields.map((field, index) => (
                                 <div key={field.id} className="space-y-4 p-4 border border-gray-700 rounded-md bg-gray-750">
                                     <div className="space-y-2">
